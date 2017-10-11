@@ -1,7 +1,7 @@
 FROM fluent/fluentd:v0.12.40
 
-MAINTAINER Tim Taylor <ttaylor@mitre.org>
-LABEL maintainer "Tim Taylor <ttaylor@mitre.org>"
+MAINTAINER Tim Taylor <mpx1@cdc.gov>
+LABEL maintainer "Tim Taylor <mpx1@cdc.gov>"
 
 USER 0
 

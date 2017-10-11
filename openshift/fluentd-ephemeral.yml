@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: fluentd-ephemeral-template
+message: |-
+  The following service(s) have been created in your project: ${FLUENTD_SERVICE_NAME}.
+
+   Logging Port: ${FLUENTD_SERVICE_NAME}:24224
+metadata:
+  annotations:
+    description: |-
+      Fluentd log data collector service, without persistent storage.
+
+      WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing
+    openshift.io/display-name: Fluentd (Ephemeral)
+    tags: database,fluentd
+    template.openshift.io/documentation-url: https://docs.fluentd.org/v0.12/articles/quickstart
+    template.openshift.io/long-description: This template provides a standalone Fluentd
+      log data collector server.  The data logs are not stored on persistent storage,
+      so any restart of the service will result in all data being lost.
+    template.openshift.io/provider-display-name: SDP Team
+    template.openshift.io/support-url: https://svcmgr.cdc.gov/
+  creationTimestamp: null
+  name: fluentd-ephemeral
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: '${FLUENTD_SERVICE_NAME}'
+  spec:
+    ports:
+    - name: fluent
+      protocol: TCP
+      port: 24224
+      targetPort: 24224
+    selector:
+      name: '${FLUENTD_SERVICE_NAME}'
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: '${FLUENTD_SERVICE_NAME}'
+  spec:
+    replicas: 1
+    selector:
+      name: '${FLUENTD_SERVICE_NAME}'
+    strategy:
+      tpe: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: '${FLUENTD_SERVICE_NAME}'
+      spec:
+        containers:
+        - capabilities: {}
+          env: {}
+          image: ' '
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 24224
+            timeoutSeconds: 1
+          name: fluentd
+          ports:
+          - containerPort: 24224
+            protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 24224
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /fluentd/log
+            name: '${FLUENTD_SERVICE_NAME}-data'
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        volumes:
+        - emptyDir:
+            medium: ''
+          name: '${FLUENTD_SERVICE_NAME}-data'
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - fluentd
+        from:
+          kind: ImageStreamTag
+          name: ${FLUENTD_IMAGE}:${FLUENTD_VERSION}
+          namespace: ${NAMESPACE}
+        lastTriggerImage: ""
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+parameters:
+- name: MEMORY_LIMIT
+  displayName: Memory Limit
+  description: Maximum amount of memory the container can use.
+  required: true
+  value: 512Mi
+- name: NAMESPACE
+  displayName: Namespace
+  description: The OpenShift Namespace where the ImageStream resides.
+  value: openshift
+- name: FLUENTD_SERVICE_NAME
+  displayName: Fluentd Service Name
+  description: The name of the OpenShift Service exposed for this instance.
+  required: true
+  value: fluentd
+- name: FLUENTD_IMAGE
+  displayName: Fluentd Image Name
+  description: The name of the Fluentd ImageStream to be used.
+  required: true
+  value: ocp-fluentd
+- name: FLUENTD_VERSION
+  displayName: Version of the Fluentd Image
+  description: Version of the Fluentd image to be used (v0.12 or latest)
+  required: true
+  value: "v0.12"
